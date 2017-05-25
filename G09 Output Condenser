@@ -1,0 +1,88 @@
+import sys
+
+# ------------------------------ NOTES ------------------------------ #
+#
+# This was built to analyze and condense the output of Gaussian
+# 09 usng DFT to do an opt+freq calculation. This file is also 
+# built to take the input from command line/terminal using the 
+# sys.argv[1] command (see comments below)
+# 
+# COULD:
+# 	- add option to change output file name (for in the bash script) 
+#	- 
+#
+# ------------------------------ START ------------------------------ #
+
+inFile = sys.argv[1]
+f = open(inFile,'r')
+# takes input from the user to select file from terminal and opens file
+# format: python 'this file name' 'input file name' 
+f1 = open('mytestfile.txt','a')
+f1.write('=====================================================\n=====================================================\n         This section is for ')
+f1.write(str(inFile))
+f1.write('\n=====================================================\n=====================================================\n\n')
+# opens the final output file with all interesting data/information
+# and allows for appending (i.e. writing to the end) 
+
+
+i = 0 
+freq = []
+for line in f:
+	if 'Step number' in line:
+		steps = line
+	if 'SCF Done:' in line:
+		energy = line
+	if ' Frequencies --' in line:
+		freq.append(line)
+	if 'Error termination request' in line:
+		f1.write('Success:	FALSE\n')
+		f1.write(str(line))
+		f1.write(str(steps))
+		f1.write('\n\n\n')	
+	if 'Normal termination' in line:
+		i = i+1
+	if i > 1:		
+		f1.write('Success:	TRUE\n')
+		f1.write(str(energy))
+		f1.writelines(['%s' % item for item in freq])
+# opens/ searches the file for a number of useful things and writes to the
+# desired output accordingly - does not get normal mode info (see below)
+
+f = open(inFile,'r')
+lines = f.readlines()
+j = 0
+norm_modes = []
+mol_size = []
+motions = []
+with open(inFile) as myFile:
+	for num, line in enumerate(myFile, 1):
+		if '  Atom  AN ' in line:
+			norm_modes.append(num)
+		if ' Symbolic Z-Matrix:' in line:
+			mol_size.append(num)
+		if ' Initialization pass' in line:
+			mol_size.append(num)
+	mol_size = mol_size[1] - mol_size[0] - 5
+
+# this calculates, correctly, the molecule size by taking some of the keywords
+# used in the Gaussin input and subtracting their difference
+# the 5 is used to account for blank spaces, etc. in the file
+
+
+#with open(inFile) as myFile:
+#	for i, line in enumerate(myFile, 1):
+#			#for k in range(len(norm_modes)):		
+#			if i == 3: #norm_modes[k]:
+#				print '3'#motions.append(i)
+	
+for i in range(len(norm_modes)):
+	for j in range(mol_size):
+		index = norm_modes[i]+j
+#		print index
+		motions.append(lines[index])
+	motions.append('\n')
+f1 = open('mytestfile.txt','a')
+f1.write('\n')
+f1.writelines(['%s' % item for item in motions])
+
+
