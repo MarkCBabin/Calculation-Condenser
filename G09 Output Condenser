@@ -63,18 +63,11 @@ with open(inFile) as myFile:
 		if ' Initialization pass' in line:
 			mol_size.append(num)
 	mol_size = mol_size[1] - mol_size[0] - 5
-
 # this calculates, correctly, the molecule size by taking some of the keywords
 # used in the Gaussin input and subtracting their difference
 # the 5 is used to account for blank spaces, etc. in the file
 
 
-#with open(inFile) as myFile:
-#	for i, line in enumerate(myFile, 1):
-#			#for k in range(len(norm_modes)):		
-#			if i == 3: #norm_modes[k]:
-#				print '3'#motions.append(i)
-	
 for i in range(len(norm_modes)):
 	for j in range(mol_size):
 		index = norm_modes[i]+j
@@ -84,5 +77,4 @@ for i in range(len(norm_modes)):
 f1 = open('mytestfile.txt','a')
 f1.write('\n')
 f1.writelines(['%s' % item for item in motions])
-
 
