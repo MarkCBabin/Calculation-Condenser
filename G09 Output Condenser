@@ -1,29 +1,32 @@
-import sys
-
 # ------------------------------ NOTES ------------------------------ #
 #
 # This was built to analyze and condense the output of Gaussian
-# 09 usng DFT to do an opt+freq calculation. This file is also 
-# built to take the input from command line/terminal using the 
-# sys.argv[1] command (see comments below)
+# 09 usng DFT to do an opt+freq calculation. #
+#
+#
+# Input: python G09_Output_Condenser.py input_name output_name
 # 
-# COULD:
-# 	- add option to change output file name (for in the bash script) 
-#	- 
+# Output: a text file (or .whatever you specify) formatted as follows:
+# ====================================================================
+# ====================================================================
+#                    This section is for [input filename]
+#                           Success		TRUE/FALSE
+# ====================================================================
+# ====================================================================
+#
+#  Either: error code & last optimization step number
+#  OR:     energy, frequency, and normal modes calculated
 #
 # ------------------------------ START ------------------------------ #
+import sys
 
 inFile = sys.argv[1]
+outFile = sys.argv[2]
 f = open(inFile,'r')
 # takes input from the user to select file from terminal and opens file
-# format: python 'this file name' 'input file name' 
-f1 = open('mytestfile.txt','a')
-f1.write('=====================================================\n=====================================================\n         This section is for ')
+f1 = open(outFile,'a')
+f1.write('===============================================================================\n===============================================================================\n   		      This section is for ')
 f1.write(str(inFile))
-f1.write('\n=====================================================\n=====================================================\n\n')
-# opens the final output file with all interesting data/information
-# and allows for appending (i.e. writing to the end) 
-
 
 i = 0 
 freq = []
@@ -35,22 +38,22 @@ for line in f:
 	if ' Frequencies --' in line:
 		freq.append(line)
 	if 'Error termination request' in line:
-		f1.write('Success:	FALSE\n')
+		f1.write('\n				Success:	FALSE\n')
+		f1.write('===============================================================================\n===============================================================================\n\n')
 		f1.write(str(line))
 		f1.write(str(steps))
-		f1.write('\n\n\n')	
 	if 'Normal termination' in line:
 		i = i+1
 	if i > 1:		
-		f1.write('Success:	TRUE\n')
+		f1.write('\n				Success:	TRUE\n')
+		f1.write('===============================================================================\n===============================================================================\n\n')
 		f1.write(str(energy))
 		f1.writelines(['%s' % item for item in freq])
-# opens/ searches the file for a number of useful things and writes to the
-# desired output accordingly - does not get normal mode info (see below)
+# opens/searches the file for a number of useful things and writes to
+# the desired output accordingly, except normal modes (see below)
 
 f = open(inFile,'r')
 lines = f.readlines()
-j = 0
 norm_modes = []
 mol_size = []
 motions = []
@@ -63,8 +66,8 @@ with open(inFile) as myFile:
 		if ' Initialization pass' in line:
 			mol_size.append(num)
 	mol_size = mol_size[1] - mol_size[0] - 5
-# this calculates, correctly, the molecule size by taking some of the keywords
-# used in the Gaussin input and subtracting their difference
+# this calculates, correctly, the molecule size by taking some of the 
+# keywords used in the Gaussin input and subtracting their difference
 # the 5 is used to account for blank spaces, etc. in the file
 
 
@@ -74,7 +77,7 @@ for i in range(len(norm_modes)):
 #		print index
 		motions.append(lines[index])
 	motions.append('\n')
-f1 = open('mytestfile.txt','a')
+f1 = open(outFile,'a')
 f1.write('\n')
 f1.writelines(['%s' % item for item in motions])
-
+f1.write('\n\n')
