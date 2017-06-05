@@ -29,7 +29,9 @@ f1.write('======================================================================
 f1.write(str(inFile))
 
 i = 0 
+j = 0
 freq = []
+errorlines = []
 for line in f:
 	if 'Step number' in line:
 		steps = line
@@ -37,11 +39,19 @@ for line in f:
 		energy = line
 	if ' Frequencies --' in line:
 		freq.append(line)
-	if 'Error termination request' in line:
-		f1.write('\n				Success:	FALSE\n')
-		f1.write('===============================================================================\n===============================================================================\n\n')
-		f1.write(str(line))
-		f1.write(str(steps))
+	if 'Error termination' in line:
+		j = j+1
+		errorlines.append(line)
+		if j == 1:
+			f1.write('\n				Success:	FALSE\n')
+			f1.write('===============================================================================\n===============================================================================\n\n')
+			f1.write(str(errorlines[0]))
+			f1.write(str(steps))
+		if j > 1:
+			f1.write('\n				Success:	FALSE\n')
+			f1.write('===============================================================================\n===============================================================================\n\n')
+			f1.write(str(errorlines[1]))
+			f1.write(str(steps))
 	if 'Normal termination' in line:
 		i = i+1
 	if i > 1:		
@@ -57,6 +67,8 @@ lines = f.readlines()
 norm_modes = []
 mol_size = []
 motions = []
+input_orientations = []
+geom = []
 with open(inFile) as myFile:
 	for num, line in enumerate(myFile, 1):
 		if '  Atom  AN ' in line:
@@ -65,19 +77,26 @@ with open(inFile) as myFile:
 			mol_size.append(num)
 		if ' Initialization pass' in line:
 			mol_size.append(num)
+		if '                          Input orientation:' in line:
+			input_orientations.append(num)
 	mol_size = mol_size[1] - mol_size[0] - 5
 # this calculates, correctly, the molecule size by taking some of the 
 # keywords used in the Gaussin input and subtracting their difference
 # the 5 is used to account for blank spaces, etc. in the file
 
-
-for i in range(len(norm_modes)):
-	for j in range(mol_size):
-		index = norm_modes[i]+j
-#		print index
-		motions.append(lines[index])
-	motions.append('\n')
+if i > 1:
+	for l in range(len(norm_modes)):
+		for j in range(mol_size):
+			index = norm_modes[l]+j
+			motions.append(lines[index])
+		motions.append('\n')
+	for l in range(mol_size):
+			index = input_orientations[-1]+l+4
+			geom.append(lines[index])			
 f1 = open(outFile,'a')
-f1.write('\n')
+f1.write('\nNormal Modes:\n')
 f1.writelines(['%s' % item for item in motions])
+f1.write('Geometry:\n')
+f1.writelines(['%s' % item for item in geom])
 f1.write('\n\n')
+
