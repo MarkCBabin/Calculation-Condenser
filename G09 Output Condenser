@@ -3,9 +3,9 @@
 # This was built to analyze and condense the output of Gaussian
 # 09 usng DFT to do an opt+freq calculation. #
 #
+# Input: python G09_Output_Condenser_v1.4.py input_name output_name
+# (or whatever version this is on in case I forget to update the vX.X) 
 #
-# Input: python G09_Output_Condenser.py input_name output_name
-# 
 # Output: a text file (or .whatever you specify) formatted as follows:
 # ====================================================================
 # ====================================================================
@@ -42,16 +42,6 @@ for line in f:
 	if 'Error termination' in line:
 		j = j+1
 		errorlines.append(line)
-		if j == 1:
-			f1.write('\n				Success:	FALSE\n')
-			f1.write('===============================================================================\n===============================================================================\n\n')
-			f1.write(str(errorlines[0]))
-			f1.write(str(steps))
-		if j > 1:
-			f1.write('\n				Success:	FALSE\n')
-			f1.write('===============================================================================\n===============================================================================\n\n')
-			f1.write(str(errorlines[1]))
-			f1.write(str(steps))
 	if 'Normal termination' in line:
 		i = i+1
 	if i > 1:		
@@ -59,6 +49,17 @@ for line in f:
 		f1.write('===============================================================================\n===============================================================================\n\n')
 		f1.write(str(energy))
 		f1.writelines(['%s' % item for item in freq])
+if j == 1:
+	f1.write('\n				Success:	FALSE\n')
+	f1.write('===============================================================================\n===============================================================================\n\n')
+	f1.write(str(errorlines[0]))
+	f1.write(str(steps))
+		
+if j > 1:
+	f1.write('\n				Success:	FALSE\n')
+	f1.write('===============================================================================\n===============================================================================\n\n')
+	f1.write(str(errorlines[1]))
+	f1.write(str(steps))
 # opens/searches the file for a number of useful things and writes to
 # the desired output accordingly, except normal modes (see below)
 
@@ -99,112 +100,116 @@ if i > 1:
 	for l in range(mol_size):	
 		index = mullikenindex + l + 1
 		mulliken.append(lines[index])
-
-f1 = open(outFile,'a')
-f1.write('\nNormal Modes:\n')
-f1.writelines(['%s' % item for item in motions])
-f1.write('Geometry:\n')
-f1.writelines(['%s' % item for item in geom])
-f1.write('\n\n\n')
+	f1 = open(outFile,'a')
+	f1.write('\nNormal Modes:\n')
+	f1.writelines(['%s' % item for item in motions])
+	f1.write('Geometry:\n')
+	f1.writelines(['%s' % item for item in geom])
+	f1.write('\n\n\n')
 
 # -------------------------- MOBCAL INPUT! -------------------------- #
-f1.write('MOBCAL INPUT:\n\n')
-shortfilename = inFile.replace(".log","")
-f1.write(str(shortfilename))
-f1.write('.mfj\n1\n')
-f1.write(str(mol_size))
-f1.write('\nang\ncalc\n1.0000\n')
-
 geom1 = []
 mulliken1 = []
-for i in range(len(geom)):
-	test = geom[i]
-	Test = mulliken[i]
-	j = i+1
-	string1 = '      %d         ' % j
-	String1 = '     %d  ' % j
-	test1 = test.replace(str(string1),"")
-	Test1 = Test.replace(str(String1),"")
-	geom1.append(test1) 
-	mulliken1.append(Test1)
+
+if i > 1 :
+	f1.write('MOBCAL INPUT:\n\n')
+	shortfilename = inFile.replace(".log","")
+	f1.write(str(shortfilename))
+	f1.write('.mfj\n1\n')
+	f1.write(str(mol_size))
+	f1.write('\nang\ncalc\n1.0000\n')
+	for l in range(len(geom)):
+		test = geom[l]
+		Test = mulliken[l]
+		j = l+1
+		string1 = '      %d         ' % j
+		String1 = '     %d  ' % j
+		test1 = test.replace(str(string1),"")
+		Test1 = Test.replace(str(String1),"")
+		geom1.append(test1) 
+		mulliken1.append(Test1)
 # stripping down the geom array to have the correct format 
 
 geom2 = []
-for i in range(len(geom)):
-	test = geom1[i]
-	test1 = test[:2]
-	geom2.append(test1)
+if i > 1:
+	for l in range(len(geom)):
+		test = geom1[l]
+		test1 = test[:2]
+		geom2.append(test1)
 # making a copy that is only the first 2 values of the shortened geom
 # array. Used for the if statements below to get MOBCAL's formatting
 
-#print geom2
-
-for i in range(len(geom)):
-	test = geom1[i]
-	Test = mulliken1[i]
+if i > 1:
+	for l in range(len(geom)):
+		test = geom1[l]
+		Test = mulliken1[l]
 # Hydrogen
-	if geom2[i] == ' 1':
-		test1 = test.replace(' 1           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('H   ',"")
-		geom1[i] = test1[:length] + str('  1\t') + Test1	
-# Carbon
-	if geom2[i] == ' 6':
-		test1 = test.replace(' 6           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('C   ',"")
-		geom1[i] = test1[:length] + str(' 12\t') + Test1
-# Nitrogen
-	if geom2[i] == ' 7':
-		test1 = test.replace(' 7           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('N   ',"")
-		geom1[i] = test1[:length] + str(' 14\t') + Test1
-# Oxygen
-	if geom2[i] == ' 8':
-		test1 = test.replace(' 8           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('O   ',"")
-		geom1[i] = test1[:length] + str(' 16\t') + Test1
-# Sodium
-	if geom2[i] == '11':
-		test1 = test.replace('11           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('Na  ',"")
-		geom1[i] = test1[:length] + str(' 23\t') + Test1		
-# Silicon
-	if geom2[i] == '14':
-		test1 = test.replace('14           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('Si  ',"")
-		geom1[i] = test1[:length] + str(' 28\t') + Test1
-# Sulfur
-	if geom2[i] == '16':
-		test1 = test.replace('16           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('S   ',"")
-		geom1[i] = test1[:length] + str(' 32\t') + Test1
-# Titanium
-	if geom2[i] == '22':
-		test1 = test.replace('22           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('Ti  ',"")
-		geom1[i] = test1[:length] + str(' 48\t') + Test1
-# Iron
-	if geom2[i] == '26':
-		test1 = test.replace('26           0       ', "\t")
-		length = len(test1)-2
-		Test1 = Test.replace('Fe  ',"")
-		geom1[i] = test1[:length] + str(' 56\t') + Test1
+		if geom2[l] == ' 1':
+			test1 = test.replace(' 1           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('H   ',"")
+			geom1[l] = test1[:length] + str('  1\t') + Test1	
+	# Carbon
+		if geom2[l] == ' 6':
+			test1 = test.replace(' 6           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('C   ',"")
+			geom1[l] = test1[:length] + str(' 12\t') + Test1
+	# Nitrogen
+		if geom2[l] == ' 7':
+			test1 = test.replace(' 7           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('N   ',"")
+			geom1[l] = test1[:length] + str(' 14\t') + Test1
+	# Oxygen
+		if geom2[l] == ' 8':
+			test1 = test.replace(' 8           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('O   ',"")
+			geom1[l] = test1[:length] + str(' 16\t') + Test1
+	# Sodium
+		if geom2[l] == '11':
+			test1 = test.replace('11           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('Na  ',"")
+			geom1[l] = test1[:length] + str(' 23\t') + Test1		
+	# Silicon
+		if geom2[l] == '14':
+			test1 = test.replace('14           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('Si  ',"")
+			geom1[l] = test1[:length] + str(' 28\t') + Test1
+	# Sulfur
+		if geom2[l] == '16':
+			test1 = test.replace('16           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('S   ',"")
+			geom1[l] = test1[:length] + str(' 32\t') + Test1
+	# Titanium
+		if geom2[l] == '22':
+			test1 = test.replace('22           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('Ti  ',"")
+			geom1[l] = test1[:length] + str(' 48\t') + Test1
+	# Iron
+		if geom2[l] == '26':
+			test1 = test.replace('26           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('Fe  ',"")
+			geom1[l] = test1[:length] + str(' 56\t') + Test1
+	# Zirconium
+		if geom2[l] == '40':
+			test1 = test.replace('40           0       ', "\t")
+			length = len(test1)-2
+			Test1 = Test.replace('Zr  ',"")
+			geom1[l] = test1[:length] + str(' 91\t') + Test1
 
 # NOTES:
 # the spaces in the Test1 lines are one shorter after elements with 2 letters
 # Similarly, they are no spaces in front of atomic numbers with 2 digits
-
-
-# This has not currently been run on MOBCAL to test formatting, but it looks close by eye
-
+# will need to incorporate other atoms as we include more in MOBCAL
 
 
 f1.writelines(['%s' % item for item in geom1])
-# will need to incorporate other atoms as we include more in MOBCAL
+f1.write('\n\n')
+# ------------------------------- END ------------------------------- #
