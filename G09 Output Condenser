@@ -237,13 +237,12 @@ if i > 0:
 
 # NOTES:
 # the spaces in the Test1 lines are one shorter after elements with 2 letters
-# Similarly, they a	f1.writelines(['%s' % item for item in freq])re no spaces in front of atomic numbers with 2 digits
+# Similarly, they are no spaces in front of atomic numbers with 2 digits
 # will need to incorporate other atoms as we include more in MOBCAL
 
 
 f1.writelines(['%s' % item for item in geom1])
 f1.write('\n\n')
-
 
 # ------------------------ ezSpectrum INPUT! ------------------------ #
 
@@ -307,6 +306,7 @@ if i > 1:
 	f1.writelines(['%s' % item for item in geom3])
 	f1.write('\n\n')
 # Need to update this for all elements :X
+# could make a dictionary for this; need to learn this
 
 # this sections generates the normal modes input
 if i > 1:
@@ -325,7 +325,6 @@ if i > 1:
 	Garbage = garbage * index
 	geom2.append(" ")
 	Geom2 = geom2 * index
-
 		# creates the appropriate string to be replaced (for loop)
 		# populates an array the correct number of times
 	for l in range(len(motions)):
@@ -336,7 +335,7 @@ if i > 1:
 	f1.writelines(['%s' % item for item in motions1])
 	f1.write('\n\n')
 
-# this sections generates the frequency input
+# this section generates the frequency input
 if i > 1:
 	f1.write('  Frequency:\n')
 	freq1 = []
