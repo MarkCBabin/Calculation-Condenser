@@ -1,14 +1,17 @@
+#######################################################################
 # ------------------------------ NOTES ------------------------------ #
+#######################################################################
 #
 # This was built to analyze and condense the output of Gaussian
-# 09 usng DFT to do an opt+freq calculation. #
+# 09 usng DFT to do an opt OR opt+freq calculation.
 #
-# Input: python G09_Output_Condenser_v1.4.py input_name output_name
+# Input: python G09_Output_Condenser_v2.0.py input_name output_name
 # (or whatever version this is on in case I forget to update the vX.X) 
 #
 # Output: a text file (or .whatever you specify) formatted as follows:
 # ====================================================================
 # ====================================================================
+#								Using Version 1.X
 #                    This section is for [input filename]
 #                           Success		TRUE/FALSE
 # ====================================================================
@@ -17,8 +20,27 @@
 #  Either: error code & last optimization step number
 #  OR:     energy, frequency, and normal modes calculated
 #
+#######################################################################
 # ------------------------------ START ------------------------------ #
+#######################################################################
+
 import sys
+
+numbertosymbol = {' 1':'H ', ' 2':'He', ' 6':'C ', ' 7':'N ', ' 8':'O ', '10':'Ne', '11':'Na', '14':'Si', '19':'K ', '22':'Ti', '26':'Fe', '40':'Zr'}
+# dictionary for atomic # -> atomic symbol
+
+numbertomass = {' 1':' 1', ' 6':'12', ' 7':'14', ' 8':'16', '11':'23', '14':'28', '22':'48', '26':'56', '40':'91'}
+# dictionary for atomic # -> atomic mass (for MOBCAL)
+# this is limited to elements MOBCAL can handle
+
+titlebox = '='*84+'\n'
+# annoying titlebox line I didn't want to rewrite a bunch
+
+i = j = 0 
+# here i and j are counters for the number of times "Normal Termination"
+# and "Error Termination" appear in the file. A succssful opt+freq calc
+# will have i > 1, while a successful opt calc will have i = 1. Any 
+# failure in the Gaussian calculation will lead to j > 0. 
 
 inFile = sys.argv[1]
 outFile = sys.argv[2]
@@ -26,25 +48,17 @@ f = open(inFile,'r')
 # takes input from the user to select file from terminal and opens file
 f1 = open(outFile,'a')
 # takes input from user to select file from terminal and writes to it
-titlebox = '===================================================================================\n===================================================================================\n'
-f1.write(str(titlebox)+'\t\t\tThis section is for ')
+f1.write(titlebox+titlebox+'\t\t\t\tUsing Version 2.0\n\t\t\tThis section is for ')
 f1.write(str(inFile))
-
 
 freq = []
 errorlines = []
-i = j = 0 
-# here i and j are counters for the number of times "Normal Termination"
-# and "Error Termination" appear in the file. A succssful opt+freq calc
-# will have i > 1, while a successful opt calc will have i = 1. Any 
-# failure in the Gaussian calculation will lead to j > 0. 
-
 for line in f:
 	if 'Step number' in line:
 		steps = line
 	if 'SCF Done:' in line:
 		energy = line
-	if ' Frequencies --' in line:
+	if ' Frequencies -- ' in line:
 		freq.append(line)
 	if 'Error termination' in line:
 		j = j+1
@@ -54,31 +68,29 @@ for line in f:
 # opens/searches the file for a number of useful things and writes to
 # the desired output accordingly, except normal modes (see below)
 
-
 if i > 0:		
 	f1.write('\n\t\t\t\tSuccess:\tTRUE\n')
-	f1.write(str(titlebox)+'\n')
+	f1.write(titlebox+titlebox+'\n')
 	f1.write(str(energy))
 	f1.writelines(['%s' % item for item in freq])
 
 if i == 0:
 	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
-	f1.write(str(titlebox)+'\nThis file did not terminate normally\n\n')
+	f1.write(titlebox+titlebox+'\nThis file did not terminate normally\n\n')
 
 if j == 1:
-	f1.write('\n				Success:\tFALSE\n')
-	f1.write(str(titlebox)+'\n')
+	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
+	f1.write(titlebox+titlebox+'\n')
 	f1.write(str(errorlines[0]))
 	f1.write(str(steps))
 		
 if j > 1:
 	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
-	f1.write(str(titlebox)+'\n')
+	f1.write(titlebox+titlebox+'\n')
 	f1.write(str(errorlines[1]))
 	f1.write(str(steps))
 # completes the header for all cases I've encountered from Gaussian09
 # this header should look a lot like what is described at the top.
-
 
 f = open(inFile,'r')
 lines = f.readlines()
@@ -120,8 +132,8 @@ if i > 0:
 			motions.append(lines[index])
 		motions.append('\n')
 	for l in range(mol_size):
-			index = input_orientations[-1]+l+4
-			geom.append(lines[index])		
+		index = input_orientations[-1]+l+4
+		geom.append(lines[index])		
 	for l in range(mol_size):	
 		index = mullikenindex + l + 1
 		mulliken.append(lines[index])
@@ -135,15 +147,19 @@ if i > 0:
 # the arrays 'geom' 'motions' and 'mulliken' which will be written
 # to the file in this section (except 'mulliken' which is used below) 
 
+#######################################################################
 # -------------------------- MOBCAL INPUT! -------------------------- #
-geom1 = []
-mulliken1 = []
-# geom1 is an array of modified strings to correct for the MOBCAL input
+#######################################################################
+
 if i > 0:
+	geom1 = []
+	geom2 = []
+	mulliken1 = []
+# arrays of modified strings to correct for the MOBCAL input
 	f1.write('MOBCAL INPUT:\n\n')
 	shortfilename = inFile.replace(".log","")
 	f1.write(str(shortfilename))
-	f1.write('.mfj\n1\n')
+	f1.write('.mfj\numbertosymboln1\n')
 	f1.write(str(mol_size))
 	f1.write('\nang\ncalc\n1.0000\n')
 	for l in range(len(geom)):
@@ -156,95 +172,33 @@ if i > 0:
 		Test1 = Test.replace(str(String1),"")
 		geom1.append(test1) 
 		mulliken1.append(Test1)
-# stripping down the geom array to have the correct format 
-
-geom2 = []
-if i > 0:
+# clipping out the first part of each line
 	for l in range(len(geom)):
 		test = geom1[l]
 		test1 = test[:2]
 		geom2.append(test1)
 # making a copy that is only the first 2 values of the shortened geom
-# array. Used below in the if statements to get the desired formatting
-
-geom3 = geom1[:]
+# array. Used below to get the desired formatting
+	geom3 = geom1[:]
 # makes a copy of geom1 here for usage in the ezSpectrum section below
-
-if i > 0:
-	for l in range(len(geom)):
+	for l in range(len(geom2)):
 		test = geom1[l]
 		Test = mulliken1[l]
-	# Hydrogen
-		if geom2[l] == ' 1':
-			test1 = test.replace(' 1           0       ', "\t")
+		if geom2[l] in numbertosymbol:
+			test1 = test.replace('%s           0       '%geom2[l], "\t")
 			length = len(test1)-2
-			Test1 = Test.replace('H   ',"")
-			geom1[l] = test1[:length] + str('  1\t') + Test1	
-	# Carbon
-		if geom2[l] == ' 6':
-			test1 = test.replace(' 6           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('C   ',"")
-			geom1[l] = test1[:length] + str(' 12\t') + Test1
-	# Nitrogen
-		if geom2[l] == ' 7':
-			test1 = test.replace(' 7           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('N   ',"")
-			geom1[l] = test1[:length] + str(' 14\t') + Test1
-	# Oxygen
-		if geom2[l] == ' 8':
-			test1 = test.replace(' 8           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('O   ',"")
-			geom1[l] = test1[:length] + str(' 16\t') + Test1
-	# Sodium
-		if geom2[l] == '11':
-			test1 = test.replace('11           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('Na  ',"")
-			geom1 = test1[:length] + str(' 23\t') + Test1		
-	# Silicon
-		if geom2[l] == '14':
-			test1 = test.replace('14           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('Si  ',"")
-			geom1[l] = test1[:length] + str(' 28\t') + Test1
-	# Sulfur
-		if geom2[l] == '16':
-			test1 = test.replace('16           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('S   ',"")
-			geom1[l] = test1[:length] + str(' 32\t') + Test1
-	# Titanium
-		if geom2[l] == '22':
-			test1 = test.replace('22           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('Ti  ',"")
-			geom1[l] = test1[:length] + str(' 48\t') + Test1
-	# Iron
-		if geom2[l] == '26':
-			test1 = test.replace('26           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('Fe  ',"")
-			geom1[l] = test1[:length] + str(' 56\t') + Test1
-	# Zirconium
-		if geom2[l] == '40':
-			test1 = test.replace('40           0       ', "\t")
-			length = len(test1)-2
-			Test1 = Test.replace('Zr  ',"")
-			geom1[l] = test1[:length] + str(' 91\t') + Test1
-
-# NOTES:
-# the spaces in the Test1 lines are one shorter after elements with 2 letters
-# Similarly, they are no spaces in front of atomic numbers with 2 digits
-# will need to incorporate other atoms as we include more in MOBCAL
-
+			string = numbertosymbol.get(geom2[l]) + '  '
+			Test1 = Test.replace(string,"")
+			string1 = numbertomass.get(geom2[l])			
+			geom1[l] = test1[:length] + ' ' +  str(string1) + '\t' + Test1
+# uses all parts created to finalize the format as MOBCAL reequires
 
 f1.writelines(['%s' % item for item in geom1])
 f1.write('\n\n')
 
+#######################################################################
 # ------------------------ ezSpectrum INPUT! ------------------------ #
+#######################################################################
 
 # this section generates the geometry input
 if i > 1:
@@ -252,61 +206,12 @@ if i > 1:
 	f1.write('  Geometry:\n')
 	for l in range(len(geom)):
 		test = geom3[l]
-	# Hydrogen
-		if geom2[l] == ' 1':
-			test1 = test.replace(' 1           0       ', "      H       ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')	
-	# Carbon
-		if geom2[l] == ' 6':
-			test1 = test.replace(' 6           0       ', "      C       ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Nitrogen
-		if geom2[l] == ' 7':
-			test1 = test.replace(' 7           0       ', "      N       ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Oxygen
-		if geom2[l] == ' 8':
-			test1 = test.replace(' 8           0       ', "      O       ")
-			length = len(test1)-2
-			Test1 = Test.replace('O   ',"")
-			geom3[l] = test1[:length] + str('\n')
-	# Sodium
-		if geom2[l] == '11':
-			test1 = test.replace('11           0       ', "      Na      ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')		
-	# Silicon
-		if geom2[l] == '14':
-			test1 = test.replace('14           0       ', "      Si      ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Sulfur
-		if geom2[l] == '16':
-			test1 = test.replace('16           0       ', "      S       ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Titanium
-		if geom2[l] == '22':
-			test1 = test.replace('22           0       ', "      Ti      ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Iron
-		if geom2[l] == '26':
-			test1 = test.replace('26           0       ', "      Fe      ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
-	# Zirconium
-		if geom2[l] == '40':
-			test1 = test.replace('40           0       ', "      Zr      ")
-			length = len(test1)-2
-			geom3[l] = test1[:length] + str('\n')
+		if geom2[l] in numbertosymbol:
+			test1 = test.replace('%s           0       '%geom2[l], "      %s      "%numbertosymbol.get(geom2[l]))
+			length = len(test1)-2		
+			geom3[l] = test1[:length] +  str('\n')
 	f1.writelines(['%s' % item for item in geom3])
 	f1.write('\n\n')
-# Need to update this for all elements :X
-# could make a dictionary for this; need to learn this
 
 # this sections generates the normal modes input
 if i > 1:
@@ -335,6 +240,20 @@ if i > 1:
 	f1.writelines(['%s' % item for item in motions1])
 	f1.write('\n\n')
 
+# this section generates the atom list used
+if i >1 :
+	f1.write('  Atom list:\n')
+	atomlist =  '"   ' 
+	spacing = '     '
+	for l in range(len(geom)):
+		atomlist += numbertosymbol.get(geom2[l]) + spacing
+		atomlist = atomlist.replace('      ', "     ")
+	atomlist = atomlist + "  "
+	atomlist = atomlist.replace('       ', "  ")
+	atomlist = atomlist + '"'
+	f1.write(str(atomlist))
+	f1.write('\n\n')
+
 # this section generates the frequency input
 if i > 1:
 	f1.write('  Frequency:\n')
@@ -347,5 +266,6 @@ if i > 1:
 	f1.write('\n\n')
 
 
-
+#######################################################################
 # ------------------------------- END ------------------------------- #
+#######################################################################
