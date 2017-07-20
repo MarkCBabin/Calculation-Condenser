@@ -1,0 +1,59 @@
+#!/bin/bash
+trap "exit" INT
+#
+# --------------------- NOTES ON HOW THIS IS USED --------------------- #
+#
+# This bash-script is intended to run 2 Gaussian 09 jobs at a time, then
+# move the checkpoint (.chk) files to the some directory specified by 
+# DESTDIR. This has been built to run from any directory (I leave 'queue'
+# on my desktop for convenience). This is set up to queue jobs on Aether
+# so you don't shit on anyone else doing computations.
+#
+# Run this as " ./queue " and open a new terminal to work/check on jobs
+#
+# NOTE: the wait command tells terminal to finish the commands before
+# "wait" before continuing onto the commands after, then start the next
+# command regardless of the success of the initial commands.
+#
+# NOTE: to kill this script, use Ctrl + C in terminal (provided you ran 
+# this in its own terminal, if not - have fun killing each Gaussian job
+# you submitted. Next time READ THE NOTES!) 
+#
+# NOTE: all file names in DESTDIR must have no spaces!!
+#
+# NOTE: all .log files will be in SOURCEDIR (they form where .com files
+# are called from) 
+#  
+# NOTE: to make this executable (if getting 'Permission denied')
+# type chmod u+x program_name into terminal
+# 
+# ---------------------------- USER  INPUT ---------------------------- #
+
+SOURCEDIR=/home/MarkBabz/Desktop
+DESTDIR=/home/MarkBabz/Desktop/NEW
+# change this to be the directory you want to run calculations from!
+
+test='testing'
+test1='testing1'
+# create any number of varibles to be the pair (neutral and anion)
+# that get calculated in each iteration of the for loop below
+# note that the variable names listed above must be in the array
+# -a below in the following format:
+# arr=("$variable_name" "$other_variable_name") 
+# note that SPACES must be used to separate items in the array!
+
+
+# ---------------------------- ACTUAL CODE ---------------------------- #
+declare -a arr=("$test" "$test1")
+for i in "${arr[@]}"
+do
+	echo "Another set of calculations has begun"
+	g09 $SOURCEDIR/"$i".com &
+	g09 $SOURCEDIR/"$i"_anion.com &
+	wait
+	mv "$i".chk $DESTDIR
+	mv "$i"_anion.chk $DESTDIR
+	python G09_Output_Condenser_v2.0.py "$i".log testfile.txt
+	python G09_Output_Condenser_v2.0.py "$i"_anion.log testfile.txt
+
+done
