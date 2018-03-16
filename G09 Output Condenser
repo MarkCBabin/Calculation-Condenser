@@ -160,6 +160,7 @@ if i > 0:
 	geom1 = []
 	geom2 = []
 	mulliken1 = []
+####### NOTE: TAKE OUT THE FOLLOWING 7 POUND SIGNS TO WRITE MOBCAL OUT
 ## arrays of modified strings to correct for the MOBCAL input
 #	f1.write('MOBCAL INPUT:\n\n')
 #	shortfilename = inFile.replace(".log","")
@@ -269,6 +270,25 @@ if i > 1:
 		freq1.append(test1)
 	f1.writelines(['%s' % item for item in freq1])
 	f1.write('\n\n')
+#######################################################################
+# ---------------------- Reorientation INPUT! ----------------------- #
+#######################################################################
+
+# this section generates the geometry input
+if i > 1:
+	f1.write('reorientation input:\n')
+	test4 = "{"
+	for l in range(len(geom)):
+		test = geom3[l]
+		test1 = "{"+test[14:]
+		test2 = test1.replace("   ",",")
+		test3 = test2.replace("\n","") +"}"
+		test4 += test3 + ","
+	test5 = test4 + ",};"
+	test6 = test5.replace(",,","")
+	f1.write(str(test6))
+	f1.write('\n\n')
+
 
 
 #######################################################################
