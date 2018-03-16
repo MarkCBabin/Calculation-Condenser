@@ -1,0 +1,40 @@
+anion={{1,2,3},{2,3,4}};
+neutral = {{2,3,4},{1,2,3}};
+mass = {1,2};
+Numb = 2;
+(* enter in the anion and neutral coordinates, the masses of each atom, and the # of atoms (Numb) in the molecule *)
+RMS[geometry_] := Sum[Sum[Part[mass,i]*(anion[[i]][[j]]-geometry[[i]][[j]])^2,{i,Numb}],{j,3}]
+xrot[geo_,θ_]:=Table[Dot[{{1,0,0},{0,Cos[θ],-Sin[θ]},{0,Sin[θ],Cos[θ]}},geo[[i]]],{i,1,Length[geo]}]
+yrot[geo_,θ_]:=Table[Dot[{{Cos[θ],0,Sin[θ]},{0,1,0},{-Sin[θ],0,Cos[θ]}},geo[[i]]],{i,1,Length[geo]}]
+zrot[geo_,θ_]:=Table[Dot[{{Cos[θ],-Sin[θ],0},{Sin[θ], Cos[θ], 0},{0,0,1}},geo[[i]]],{i,1,Length[geo]}]
+RMSx = Sum[Part[mass,i]*(anion[[i]][[1]]-neutral[[i]][[1]]+x)^2,{i,Numb}];
+RMSy = Sum[Part[mass,i]*(anion[[i]][[2]]-neutral[[i]][[2]]+y)^2,{i,Numb}];
+RMSz = Sum[Part[mass,i]*(anion[[i]][[3]]-neutral[[i]][[3]]+z)^2,{i,Numb}];
+(*gives the root mean difference between the two mass weighted geometries in the xyz coordinates *)
+
+Determining the x-shift
+ Minimize[RMSx,x]
+Plot[RMSx,{x,-3,3}]
+
+ Determining the y-shift
+Minimize[RMSy,y]
+Plot[RMSy,{y,-3,3}]
+
+ Determining the z-shift
+Minimize[RMSz,z]
+Plot[RMSz,{z,-3,3}]
+
+ Determining the x-rotation
+AA = xrot[neutral,x];
+N[Minimize[RMS[AA],x]]
+Plot[RMS[AA],{x,-3,3}]
+
+ Determining the y-rotation
+BB = yrot[neutral,x];
+N[Minimize[RMS[BB],x]]
+Plot[RMS[BB],{x,-3,3}]
+
+ Determining the z-rotation
+CC= zrot[neutral,x];
+N[Minimize[RMS[CC],x]]
+Plot[RMS[CC],{x,-3,3}]
