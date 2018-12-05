@@ -59,3 +59,12 @@ if TRUE:
 This code is for a mathematica notebook (.nb) and allows for the rotation of two molecules to minimize their distances (i.e. reorient two molecular structures so they have maxmimum overlap). 
 
 Update the anion and neutral geometries using the output from G09_Output_Condenser.py or by hand - then run each of the cells to determine the x,y,z translational and rotational distance required to adjust them. These can be easily put into ezSpecturm. Note that ezSpectrum wants units in radians/pi (so divide your rotational output values by pi). 
+
+
+
+
+##############################################################
+			G16_Output_Condenser
+##############################################################
+
+This is an updated version of G09_Output_Condenser that works with Gaussian 16. The MOBCAL funcationality has not been updated and thus does not work (as I do not use this software and was too lazy to update this component of the script). To my knowledge, all other aspects of this should work exactly the same as the version for Gaussian 09.
