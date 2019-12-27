@@ -5,13 +5,13 @@
 # This was built to analyze and condense the output of Gaussian
 # 09 usng DFT to do an opt OR opt+freq calculation.
 #
-# Input: python G09_Output_Condenser_v2.0.py input_name output_name
-# (or whatever version this is on in case I forget to update the vX.X) 
+# Input: python G16_OCv1.py input_name output_name
+# (or whatever version this is on in case I forget to update the vX) 
 #
 # Output: a text file (or .whatever you specify) formatted as follows:
 # ====================================================================
 # ====================================================================
-#				Using Version 2.X
+#				Using G16 Version 1.0
 #                    This section is for [input filename]
 #                           Success		TRUE/FALSE
 # ====================================================================
@@ -53,7 +53,7 @@ f = open(inFile,'r')
 # takes input from the user to select file from terminal and opens file
 f1 = open(outFile,'a')
 # takes input from user to select file from terminal and writes to it
-f1.write(titlebox+titlebox+'\t\t\t\tUsing Version 2.0\n\t\t\tThis section is for ')
+f1.write(titlebox+titlebox+'\t\t\t\tUsing G16 Version 1.0\n\t\t\tThis section is for ')
 f1.write(str(inFile))
 
 freq = []
@@ -94,7 +94,7 @@ if j > 1:
 	f1.write(titlebox+titlebox+'\n')
 	f1.write(str(errorlines[1]))
 	f1.write(str(steps))
-# completes the header for all cases I've encountered from Gaussian16
+# completes the header for all cases I've encountered from Gaussian09
 # this header should look a lot like what is described at the top.
 
 f = open(inFile,'r')
@@ -102,7 +102,6 @@ lines = f.readlines()
 norm_modes = []
 # array of normal modes
 mol_size = []
-mol_size1 = []
 # used to calculate molecule size (see loop below)
 motions = []
 # ultimately the normal modes written into the file
@@ -118,17 +117,11 @@ with open(inFile) as myFile:
 	for num, line in enumerate(myFile, 1):
 		if '  Atom  AN ' in line:
 			norm_modes.append(num)
-		if ' Symbolic Z-matrix:' in line:
-			mol_size.append(num)
-		if ' GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad' in line:
-			mol_size1.append(num)
 		if '                          Input orientation:' in line:
 			input_orientations.append(num)
-		if ' Mulliken atomic charges:' in line:
+		if ' Mulliken charges and spin densities:' in line:
 			mullikenindex = num
-			# NOTE: THE MULLIKEN PORTION OF THIS CODE NO LONGER WORKS FOR G16
-			# THIS NEEDS TO BE UPDATED OR USE THE G09 VERSION
-	mol_size = mol_size1[0] - mol_size[0] - 4
+	mol_size = norm_modes[1] - norm_modes[0] - 7
 # this calculates, correctly, the molecule size by taking some of the 
 # keywords used in the Gaussin input and subtracting their difference
 # the 5 is used to account for blank spaces, etc. in the file
@@ -142,9 +135,9 @@ if i > 0:
 	for l in range(mol_size):
 		index = input_orientations[-1]+l+4
 		geom.append(lines[index])		
-#	for l in range(mol_size):	
-#		index = mullikenindex + l + 1
-#		mulliken.append(lines[index])
+	for l in range(mol_size):	
+		index = mullikenindex + l + 1
+		mulliken.append(lines[index])
 	f1 = open(outFile,'a')
 	f1.write('\nNormal Modes:\n')
 	f1.writelines(['%s' % item for item in motions])
@@ -163,9 +156,8 @@ if i > 0:
 	geom1 = []
 	geom2 = []
 	mulliken1 = []
-####### NOTE: TAKE OUT THE FOLLOWING POUND SIGNS TO WRITE MOBCAL OUT
-####### arrays of modified strings to correct for the MOBCAL input
-####### THE MULLIKEN SECTION NO LONGER WORKS HERE - NEED TO UPDATE!!
+####### NOTE: TAKE OUT THE FOLLOWING 7 POUND SIGNS TO WRITE MOBCAL OUT
+## arrays of modified strings to correct for the MOBCAL input
 #	f1.write('MOBCAL INPUT:\n\n')
 #	shortfilename = inFile.replace(".log","")
 #	f1.write(str(shortfilename))
@@ -174,14 +166,14 @@ if i > 0:
 #	f1.write('\nang\ncalc\n1.0000\n')
 	for l in range(len(geom)):
 		test = geom[l]
-#		Test = mulliken[l]
+		Test = mulliken[l]
 		j = l+1
 		string1 = '      %d         ' % j
 		String1 = '     %d  ' % j
 		test1 = test.replace(str(string1),"")
-#		Test1 = Test.replace(str(String1),"")
+		Test1 = Test.replace(str(String1),"")
 		geom1.append(test1) 
-#		mulliken1.append(Test1)
+		mulliken1.append(Test1)
 # clipping out the first part of each line
 	for l in range(len(geom)):
 		test = geom1[l]
@@ -191,16 +183,16 @@ if i > 0:
 # array. Used below to get the desired formatting
 	geom3 = geom1[:]
 # makes a copy of geom1 here for usage in the ezSpectrum section below
-#	for l in range(len(geom2)):
-#		test = geom1[l]
-#		Test = mulliken1[l]
-#		if geom2[l] in numbertosymbol:
-#			test1 = test.replace('%s           0       '%geom2[l], "\t")
-#			length = len(test1)-2
-#			string = numbertosymbol.get(geom2[l]) + '  '
-#			Test1 = Test.replace(string,"")
-#			string1 = numbertomass.get(geom2[l])			
-#			geom1[l] = test1[:length] + ' ' +  str(string1) + '\t' + Test1
+	for l in range(len(geom2)):
+		test = geom1[l]
+		Test = mulliken1[l]
+		if geom2[l] in numbertosymbol:
+			test1 = test.replace('%s           0       '%geom2[l], "\t")
+			length = len(test1)-2
+			string = numbertosymbol.get(geom2[l]) + '  '
+			Test1 = Test.replace(string,"")
+			string1 = numbertomass.get(geom2[l])			
+			geom1[l] = test1[:length] + ' ' +  str(string1) + '\t' + Test1
 # uses all parts created to finalize the format as MOBCAL reequires
 
 #f1.writelines(['%s' % item for item in geom1])
