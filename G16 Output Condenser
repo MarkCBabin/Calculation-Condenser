@@ -121,6 +121,8 @@ with open(inFile) as myFile:
 			input_orientations.append(num)
 		if ' Mulliken charges and spin densities:' in line:
 			mullikenindex = num
+		if ' Mulliken charges:' in line:
+			mullikenindex = num
 	mol_size = norm_modes[1] - norm_modes[0] - 7
 # this calculates, correctly, the molecule size by taking some of the 
 # keywords used in the Gaussin input and subtracting their difference
