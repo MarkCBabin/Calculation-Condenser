@@ -52,6 +52,49 @@ if TRUE:
 	ezSpectrum input (if opt+freq)
 	reorientation input
 	
+	
+	
+##############################################################
+			G16_OCv##.py
+##############################################################
+
+
+This python script reads a .log file from Gaussian 16 (doing a geom or opt+freq calcuation) and determines if the calculation ran successfully (i.e. to completion) and if so creates a .txt file (or whatever extension you specify) containing the name of the file, the energy of the structure, electronic symmetry, zero point energy corrections, the geometry, all normal mode frequencies and displacement vectors, as well as creates inputs for the MOBCAL and ezSpectrum programs commonly used by our group. Note that files are written to in an "append" style, meaning that one .txt file can be written to contain multiple .log files' information by simply writing to the same file (it will not overwrite, just write more at the end).
+
+Input: python G16_OCv###.py input_name output_name
+	output_name can be whatever filetype desired, I often use name.txt for convenience.
+
+Output: (name.txt) 
+
+You will get a txt (or whatever other format) with the following information
+
+====================================================================================
+====================================================================================
+		          	Using Version XXX
+
+                    	This section is for input_name.log
+			     Success:	TRUE/FALSE
+====================================================================================
+====================================================================================
+
+if FALSE: 
+	error code from Gaussian & last optimization step number
+if TRUE:
+	Method employed
+	Final energy
+	zero-point energy
+	electronic state symmetry
+	Frequncies (if calculated)
+	Normal modes (if calculated)
+	Geometry
+	MOBCAL input
+	ezSpectrum input (if opt+freq)
+	reorientation input
+	
+	
+NOTE: The MOBCAL funcationality has not been updated and thus does not work (as I do not use this software and was too lazy to update this component of the script)	
+	
+	
 ##############################################################
 			reorientation
 ##############################################################	
@@ -60,11 +103,3 @@ This code is for a mathematica notebook (.nb) and allows for the rotation of two
 
 Update the anion and neutral geometries using the output from G09_Output_Condenser.py or by hand - then run each of the cells to determine the x,y,z translational and rotational distance required to adjust them. These can be easily put into ezSpecturm. Note that ezSpectrum wants units in radians/pi (so divide your rotational output values by pi). 
 
-
-
-
-##############################################################
-			G16_Output_Condenser
-##############################################################
-
-This is an updated version of G09_Output_Condenser that works with Gaussian 16. The MOBCAL funcationality has not been updated and thus does not work (as I do not use this software and was too lazy to update this component of the script). To my knowledge, all other aspects of this should work exactly the same as the version for Gaussian 09.
