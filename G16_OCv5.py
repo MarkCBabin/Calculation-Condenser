@@ -1,0 +1,427 @@
+#====================================================================================================
+# --------------------------------------------- NOTES --------------------------------------------- #
+#====================================================================================================
+#
+# This was built to analyze and condense the output of Gaussian 16 using DFT or wavefunction methods
+# for opt OR opt+freq calculations. 
+#
+# Input: python G16_OCv4.py input_name output_name
+# (or whatever version this is on in case I forget to update the vX) 
+#
+# Output: a text file (or .whatever you specify) formatted as follows:
+# ====================================================================================================
+# ====================================================================================================
+#					Using G16 Version 4.0
+#                    		This section is for [input filename]
+#                       	    Success		TRUE/FALSE
+# ====================================================================================================
+# ====================================================================================================
+#	
+#  Either: error code & last optimization step number
+#  OR:     energy, method, zpe, frequency, normal modes calculated
+#	   input for ezSpectrum 3.0
+#	   input for re-orientation Wolfram code (in the same GitHub as this code)	  
+#	   There are options to create input information for MOBCAL (see section below) 
+#		this has not been tested on G16 outputs
+#
+#  Note: This code currenlty has support for B3LYP and wB97XD DFT methods
+#	 To add others, see line ~100 and add the method of interest
+#
+#  For updates to this code, check posts to the associated GitHub repo:
+#  https://github.com/MarkCBabin/Calculation-Condenser
+#  If issues arise, or for questions/request, contact markcbabin@gmail.com 
+#
+#====================================================================================================
+# --------------------------------------------- START --------------------------------------------- #
+# -------------------------------------------- SCRIPT --------------------------------------------- #
+#====================================================================================================
+
+import sys
+
+#====================================================================================================
+# -------------------------------------------- DEFINE --------------------------------------------- #
+# ------------------------------------------- VARIABLES ------------------------------------------- #
+#==================================================================================================== 
+titlebox = '='*100+'\n'
+# annoying titlebox line I didn't want to rewrite a bunch
+
+i = j = 0 
+# here i and j are counters for the number of times "Normal Termination"
+# and "Error Termination" appear in the file. A succssful opt+freq calc
+# will have i > 1, while a successful opt calc will have i = 1. Any 
+# failure in the Gaussian calculation will lead to j > 0. 
+
+inFile = sys.argv[1]
+outFile = sys.argv[2]
+f = open(inFile,'r')
+# takes input from the user to select file from terminal and opens file
+f1 = open(outFile,'a')
+# takes input from user to select file from terminal and writes to it
+
+freq = []
+errorlines = []
+symmetry = ' The symmetry of this system has not been determined\n'
+method = 'undetermined (i.e. not a supported format - contact markcbabin@gmail.com for fixes)\n'
+energy = []
+zpe = []
+# zpe is the zero point energy
+wavefunction = 0
+# wavefunction is a variable to track whether or not a wavefunction-based method (i.e. MP2, MP4, coupled cluster)
+# is employed. If so, the reporting of the final energy is different than DFT methods. This impacts the energy
+# determination 'if' statments below.
+
+
+
+#====================================================================================================
+# ------------------------------------------ TRANSLATIONS ----------------------------------------- #
+#====================================================================================================
+
+numbertosymbol = {' 1':'H ', ' 2':'He', ' 3':'Li', ' 4':'Be', ' 5':'B ', ' 6':'C ', ' 7':'N ', ' 8':'O ', ' 9':'F ', '10':'Ne', '11':'Na', '12':'Mg', '13':'Al', '14':'Si','15':'P ', '16':'S ', '17':'Cl', '18':'Ar', '19':'K ', '20':'Ca', '21':'Sc', '22':'Ti', '23':'V ', '24':'Cr', '25':'Mn', '26':'Fe', '27':'Co', '28':'Ni', '29':'Cu', '30':'Zn', '31':'Ga', '32':'Ge', '33':'As', '34':'Se', '35':'Br', '36':'Kr', '37':'Rb', '38':'Sr', '39':'Y ', '40':'Zr', '41':'Nb', '42':'Mo', '43':'Tc', '44':'Ru', '45':'Rh', '46':'Pd', '47':'Ag', '48':'Cd', '49':'In', '50':'Sn', '51':'Sb', '52':'Te', '53':'I ', '54':'Xe', '55':'Cs', '72':'Hf', '73':'Ta', '74':'W ', '75':'Re', '76':'Os', '77':'Os', '78':'Pt', '79':'Au', '80':'Hg', '81':'Tl', '82':'Pb', '83':'Bi', '84':'Po', '85':'At', '86':'Rn'}
+# dictionary for atomic # -> atomic symbol
+# this has been updated, needs to be tested that I didn't somehow mess up the syntax on this... Does not include the lanthanides or actinides
+
+numbertomass = {' 1':' 1', ' 6':'12', ' 7':'14', ' 8':'16', '11':'23', '14':'28', '22':'48', '26':'56', '40':'91'}
+# dictionary for atomic # -> atomic mass (for MOBCAL)
+# this is limited to elements MOBCAL can handle
+
+
+#====================================================================================================
+# ------------------------------------------- DO STUFF -------------------------------------------- #
+#====================================================================================================
+
+for line in f:
+	if 'Step number' in line:
+		steps = line
+	if 'The electronic state' in line:
+		symmetry = line
+	if ' Frequencies -- ' in line:
+		freq.append(line)
+	if 'Error termination' in line:
+		j = j+1
+		errorlines.append(line)
+	if 'Zero-point correction=' in line:
+		zpe.append(line)
+	if 'Normal termination' in line:
+		i = i+1
+# opens/searches the file for a number of useful things and writes to
+# the desired output accordingly, except normal modes (see section below)
+	if 'mp2' in line:
+		method = 'MP2'
+		wavefunction = 1
+	if 'ccsd' in line:
+		method = 'CCSD'
+		wavefunction = 2
+	if 'b3lyp' in line:
+		method = 'B3LYP'
+	if 'wb97x' in line: #this has not been tested; i am not sure if it is "x" or "xd"
+		method = 'wB97X-D'
+# determining the method (imporant later for determining energy)	
+	if wavefunction == 0:
+	#if DFT: easy way to report final energy
+		if 'SCF Done:' in line:
+			energy = line
+# determining the final energy of a geometry changes depending on whether a wavefunction method
+# or a DFT method is employed.
+if wavefunction > 0:
+# if wavefunction method; harder to report energy
+	energy_index =[]
+	f = open(inFile,'r')
+	lines = f.readlines()
+	#reset some variable
+	with open(inFile) as myFile:
+		for num, line in enumerate(myFile, 1):
+			if wavefunction == 1:
+				if 'MP2=' in line:
+					energy_index.append(num)
+			if wavefunction == 2:
+				if 'CCSD=' in line:
+					energy_index.append(num)
+	energy.append(lines[energy_index[0]-1])
+	energy.append(lines[energy_index[0]])
+	energy1 = str(energy[0]) + str(energy[1])
+	#make a string out of "energy" so we can clean this up
+	energy2 = energy1.translate(None, '[]\n/ ')	
+	#cleans up this string
+	energy3 = energy2.split('\\')	
+	final_energy1 = [energy3[k] for k in range(len(energy3)) if method in energy3[k]]
+	# this is called a list comprehension!!
+	# performs the following for and if statements, without giving list index error
+	#	for k in range(len(energy3)):
+	#		if method in energy3[k]:
+	#			final_energy = energy[k]
+	# which basically selects just the string containing the energy for the method employed
+	final_energy2 = str(final_energy1)
+	final_energy = final_energy2.translate(None,'[\']')
+	# cleans up the output of the list comprehension so that the output is readable!
+
+zpe1 = str(zpe)
+zpe2 = zpe1.translate(None, "[]\\Hartree/Particle()zo-pnZ=' ")
+# zero point energy cleanup 
+
+
+#====================================================================================================
+# --------------------------------------------- WRITE --------------------------------------------- #
+# ----------------------------------------------- TO ---------------------------------------------- #
+# ---------------------------------------------- FILE --------------------------------------------- #
+#====================================================================================================
+
+f1.write(titlebox+titlebox+'\t\t\t\t\t\tUsing G16OC Version 4.0\n\t\t\t\tThis section is for ')
+f1.write(str(inFile))
+# writes header to file
+
+#determining if the output terminated correctly or not
+if i > 0:		
+	f1.write('\n\t\t\t\t\t\tSuccess:\tTRUE\n')
+	f1.write(titlebox+titlebox+'\n')
+	f1.write(' The method is ')
+	f1.write(str(method) + '\n')
+	if wavefunction == 0:
+		f1.write(str(energy))
+	if wavefunction > 0:
+		f1.write(' The final energy is ' + str(final_energy) +'\n')
+	f1.write(' The Zero-point energy = ' + str(zpe2)+ '\n')	
+	f1.write(str(symmetry))
+	f1.writelines(['%s' % item for item in freq])
+# writes to file all the important info determined thus far!
+
+if i == 0:
+	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
+	f1.write(titlebox+titlebox+'\nThis file did not terminate normally\n\n')
+
+if j == 1:
+	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
+	f1.write(titlebox+titlebox+'\n')
+	f1.write(str(errorlines[0]))
+	f1.write(str(steps))
+		
+if j > 1:
+	f1.write('\n\t\t\t\tSuccess:\tFALSE\n')
+	f1.write(titlebox+titlebox+'\n')
+	f1.write(str(errorlines[1]))
+	f1.write(str(steps))
+# completes the header for all cases I've encountered from Gaussian16
+# this header should look a lot like what is described at the top.
+
+
+
+#====================================================================================================
+# -------------------------------------------- NORMAL --------------------------------------------- #
+# --------------------------------------------- MODES --------------------------------------------- #
+#====================================================================================================
+
+f = open(inFile,'r')
+lines = f.readlines()
+norm_modes = []
+# empty array, will populate with normal modes
+mol_size = []
+# used to calculate molecule size (see loop below)
+motions = []
+# ultimately the normal modes written into the file
+input_orientations = []
+# used to get geometry information from the file
+geom = []
+# ultimately the geometry written into the file
+mulliken = []
+# mulliken charges for each atom in molecule - used for MOBCAL input (see next section)
+dummy = []
+# used in determining molecular size - working on it.
+with open(inFile) as myFile:
+	for num, line in enumerate(myFile, 1):
+		if '  Atom  AN ' in line:
+			norm_modes.append(num)		
+		if '                    Distance matrix (angstroms):' in line:
+			dummy.append(num)
+		if '                          Input orientation:' in line:
+			input_orientations.append(num)
+		if ' Mulliken charges and spin densities:' in line:
+			mullikenindex = num
+		if ' Mulliken charges:' in line:
+			mullikenindex = num
+	mol_size = dummy[0] - input_orientations[0] - 6
+# this calculates, correctly, the molecule size by taking some of the keywords used 
+# in the Gaussin input and subtracting their difference the -7 is used to account for
+# blank spaces, etc. in the file
+
+if i > 0:
+	for l in range(len(norm_modes)):
+		for j in range(mol_size):
+			index = norm_modes[l]+j
+			motions.append(lines[index])
+		motions.append('\n')
+	for l in range(mol_size):
+		index = input_orientations[-1]+l+4
+		geom.append(lines[index])		
+	for l in range(mol_size):	
+		index = mullikenindex + l + 1
+		mulliken.append(lines[index])
+	f1 = open(outFile,'a')
+	f1.write('\nNormal Modes:\n')
+	f1.writelines(['%s' % item for item in motions])
+	f1.write('Geometry:\n')
+	f1.writelines(['%s' % item for item in geom])
+	f1.write('\n\n\n')
+
+# using the molecule size calculated above, this correctly populates
+# the arrays 'geom' 'motions' and 'mulliken' which will be written
+# to the file in this section (except 'mulliken' which is used below) 
+
+#====================================================================================================
+# -------------------------------------------- MOBCAL --------------------------------------------- #
+# --------------------------------------------- INPUT --------------------------------------------- #
+#====================================================================================================
+#
+#	NOTE: THIS HAS NOT BEEN TESTED ON G16 OUTPUTS (built in G09 OUTPUT CONDENSER)
+#
+if i > 0:
+	geom1 = []
+	geom2 = []
+	mulliken1 = []
+
+## arrays of modified strings to correct for the MOBCAL input
+####### NOTE: UN-COMMENT THE FOLLOWING 6 ROWS TO WRITE MOBCAL OUT
+#	f1.write('MOBCAL INPUT:\n\n')
+#	shortfilename = inFile.replace(".log","")
+#	f1.write(str(shortfilename))
+#	f1.write('.mfj\numbertosymboln1\n')
+#	f1.write(str(mol_size))
+#	f1.write('\nang\ncalc\n1.0000\n')
+	for l in range(len(geom)):
+		test = geom[l]
+		Test = mulliken[l]
+		j = l+1
+		if j <= 9:
+			string1 = '      %d         ' % j
+			String1 = '     %d  ' % j
+		if j >= 10:
+			string1 = '     %d         ' % j
+			String1 = '     %d  ' % j
+		test1 = test.replace(str(string1),"")
+		Test1 = Test.replace(str(String1),"")
+		geom1.append(test1) 
+		mulliken1.append(Test1)
+# clipping out the first part of each line
+	for l in range(len(geom)):
+		test = geom1[l]
+		test1 = test[:2]
+		geom2.append(test1)
+# making a copy that is only the first 2 values of the shortened geom
+# array. Used below to get the desired formatting
+	geom3 = geom1[:]
+# makes a copy of geom1 here for usage in the ezSpectrum section below
+	for l in range(len(geom2)):
+		test = geom1[l]
+		Test = mulliken1[l]
+		if geom2[l] in numbertosymbol:
+			test1 = test.replace('%s           0       '%geom2[l], "\t")
+			length = len(test1)-2
+			string = numbertosymbol.get(geom2[l]) + '  '
+			Test1 = Test.replace(string,"")
+			string1 = numbertomass.get(geom2[l])			
+			geom1[l] = test1[:length] + ' ' +  str(string1) + '\t' + Test1
+# uses all parts created to finalize the format as MOBCAL reequires
+
+#f1.writelines(['%s' % item for item in geom1])
+#f1.write('\n\n')
+
+#====================================================================================================
+# ------------------------------------------- ezSpectrum ------------------------------------------ #
+# --------------------------------------------- INPUT --------------------------------------------- #
+#====================================================================================================
+
+if i > 1:
+	f1.write('******************************')
+	f1.write('ezSpectrum input')
+	f1.write('******************************\n\n')
+	f1.write('  Geometry:\n')
+	for l in range(len(geom)):
+		test = geom3[l]
+		if geom2[l] in numbertosymbol:
+			test1 = test.replace('%s           0       '%geom2[l], "      %s      "%numbertosymbol.get(geom2[l]))
+			length = len(test1)-2		
+			geom3[l] = test1[:length] +  str('\n')
+	f1.writelines(['%s' % item for item in geom3])
+	f1.write('\n\n')
+
+# this sections generates the normal modes input
+# as of 4/28/2020, this works with molecules with up to 99 atoms
+if i > 1:
+	f1.write('  Normal Modes:\n')
+	motions1 = []
+	garbage = []
+	Garbage = []
+	Geom2 = []
+	GEOM2 = []	
+	index = (len(motions) + 1) / (len(geom) + 1)
+		# indexes number of sets of lines of normal modes
+	for l in range(len(geom)+1):
+		j = l+1
+		if j <= 9:
+			string1 = '     %d  ' % j
+		if j >= 10:
+			string1 = '    %d  ' % j
+		garbage.append(string1)
+	Garbage = garbage * index
+	geom2.append(" ")
+	Geom2 = geom2 * index
+		# creates the appropriate string to be replaced (for loop)
+		# populates an array the correct number of times
+	for l in range(len(motions)):
+		test = motions[l]
+		test1 = test.replace(str(Garbage[l])+str(Geom2[l]),"     ")
+		motions1.append(test1) 
+		# correctly formats the first part of each line
+	f1.writelines(['%s' % item for item in motions1])
+	f1.write('\n\n')
+
+# this section generates the atom list used
+if i >1 :
+	f1.write('  Atom list:\n')
+	atomlist =  '"   ' 
+	spacing = '     '
+	for l in range(len(geom)):
+		atomlist += numbertosymbol.get(geom2[l]) + spacing
+		atomlist = atomlist.replace('      ', "     ")
+	atomlist = atomlist + "  "
+	atomlist = atomlist.replace('       ', "  ")
+	atomlist = atomlist + '"'
+	f1.write(str(atomlist))
+	f1.write('\n\n')
+
+# this section generates the frequency input
+if i > 1:
+	f1.write('  Frequency:\n')
+	freq1 = []
+	for l in range(len(freq)):
+		test = freq[l]
+		test1 = test.replace(' Frequencies --  ', "       ")
+		freq1.append(test1)
+	f1.writelines(['%s' % item for item in freq1])
+	f1.write('\n\n')
+
+#====================================================================================================
+# ----------------------------------------- REORIENTATION ----------------------------------------- #
+# --------------------------------------------- INPUT --------------------------------------------- #
+#====================================================================================================
+
+# this section generates the geometry re-orientation input
+if i > 1:
+	f1.write('******************************')
+	f1.write('reorientation input')
+	f1.write('******************************\n\n')
+	test4 = "{"
+	for l in range(len(geom)):
+		test = geom3[l]
+		test1 = "{"+test[14:]
+		test2 = test1.replace("   ",",")
+		test3 = test2.replace("\n","") +"}"
+		test4 += test3 + ","
+	test5 = test4 + ",};"
+	test6 = test5.replace(",,","")
+	f1.write(str(test6))
+	f1.write('\n\n')
+
+
+
+#====================================================================================================
+# ---------------------------------------------- END ---------------------------------------------- #
+#====================================================================================================
